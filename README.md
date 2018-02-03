@@ -13,7 +13,7 @@ Novac is a private, secure, untraceable, decentralised digital currency. You are
 
 **Untraceability:** By taking advantage of ring signatures, a special property of a certain type of cryptography, Novac is able to ensure that transactions are not only untraceable, but have an optional measure of ambiguity that ensures that transactions cannot easily be tied back to an individual user or computer.
 
-## About this project
+## About this Project
 
 This is the core implementation of Novac. It is open source and completely free to use without restrictions, except for those specified in the license agreement below. There are no restrictions on anyone creating an alternative implementation of Novac that uses the protocol and network in a compatible manner.
 
