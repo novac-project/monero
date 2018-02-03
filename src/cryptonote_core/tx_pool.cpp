@@ -117,7 +117,7 @@ namespace cryptonote
     {
       // v0 never accepted
       LOG_PRINT_L1("transaction version 0 is invalid");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
 
@@ -125,15 +125,15 @@ namespace cryptonote
     // kept_by_block
     if (!kept_by_block && m_timed_out_transactions.find(id) != m_timed_out_transactions.end())
     {
-      // not clear if we should set that, since verifivation (sic) did not fail before, since
+      // not clear if we should set that, since verification (sic) did not fail before, since
       // the tx was accepted before timing out.
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
 
     if(!check_inputs_types_supported(tx))
     {
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_invalid_input = true;
       return false;
     }
@@ -146,7 +146,7 @@ namespace cryptonote
       uint64_t inputs_amount = 0;
       if(!get_inputs_money_amount(tx, inputs_amount))
       {
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         return false;
       }
 
@@ -154,7 +154,7 @@ namespace cryptonote
       if(outputs_amount >= inputs_amount)
       {
         LOG_PRINT_L1("transaction use more money then it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         tvc.m_overspend = true;
         return false;
       }
@@ -168,7 +168,7 @@ namespace cryptonote
 
     if (!kept_by_block && !m_blockchain.check_fee(blob_size, fee))
     {
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_fee_too_low = true;
       return false;
     }
@@ -177,7 +177,7 @@ namespace cryptonote
     if (!kept_by_block && blob_size >= tx_size_limit)
     {
       LOG_PRINT_L1("transaction is too big: " << blob_size << " bytes, maximum size: " << tx_size_limit);
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_too_big = true;
       return false;
     }
@@ -191,7 +191,7 @@ namespace cryptonote
       {
         mark_double_spend(tx);
         LOG_PRINT_L1("Transaction with id= "<< id << " used already spent key images");
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         tvc.m_double_spend = true;
         return false;
       }
@@ -200,13 +200,13 @@ namespace cryptonote
     if (!m_blockchain.check_tx_outputs(tx, tvc))
     {
       LOG_PRINT_L1("Transaction with id= "<< id << " has at least one invalid output");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_invalid_output = true;
       return false;
     }
 
     // assume failure during verification steps until success is certain
-    tvc.m_verifivation_failed = true;
+    tvc.m_verification_failed = true;
 
     time_t receive_time = time(nullptr);
 
@@ -247,12 +247,12 @@ namespace cryptonote
           MERROR("transaction already exists at inserting in memory pool: " << e.what());
           return false;
         }
-        tvc.m_verifivation_impossible = true;
+        tvc.m_verification_impossible = true;
         tvc.m_added_to_pool = true;
       }else
       {
         LOG_PRINT_L1("tx used wrong inputs, rejected");
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         tvc.m_invalid_input = true;
         return false;
       }
@@ -294,7 +294,7 @@ namespace cryptonote
         tvc.m_should_be_relayed = true;
     }
 
-    tvc.m_verifivation_failed = false;
+    tvc.m_verification_failed = false;
 
     MINFO("Transaction added to pool: txid " << id << " bytes: " << blob_size << " fee/byte: " << (fee / (double)blob_size));
     return true;

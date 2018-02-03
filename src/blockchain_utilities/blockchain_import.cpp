@@ -199,7 +199,7 @@ int check_flush(cryptonote::core &core, std::list<block_complete_entry> &blocks,
     {
       tx_verification_context tvc = AUTO_VAL_INIT(tvc);
       core.handle_incoming_tx(tx_blob, tvc, true, true, false);
-      if(tvc.m_verifivation_failed)
+      if(tvc.m_verification_failed)
       {
         MERROR("transaction verification failed, tx_id = "
             << epee::string_tools::pod_to_hex(get_blob_hash(tx_blob)));
@@ -214,7 +214,7 @@ int check_flush(cryptonote::core &core, std::list<block_complete_entry> &blocks,
 
     core.handle_incoming_block(block_entry.block, bvc, false); // <--- process block
 
-    if(bvc.m_verifivation_failed)
+    if(bvc.m_verification_failed)
     {
       MERROR("Block verification failed, id = "
           << epee::string_tools::pod_to_hex(get_blob_hash(block_entry.block)));

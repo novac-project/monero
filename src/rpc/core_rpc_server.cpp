@@ -675,7 +675,7 @@ namespace cryptonote
 
     cryptonote_connection_context fake_context = AUTO_VAL_INIT(fake_context);
     tx_verification_context tvc = AUTO_VAL_INIT(tvc);
-    if(!m_core.handle_incoming_tx(tx_blob, tvc, false, false, req.do_not_relay) || tvc.m_verifivation_failed)
+    if(!m_core.handle_incoming_tx(tx_blob, tvc, false, false, req.do_not_relay) || tvc.m_verification_failed)
     {
       res.status = "Failed";
       res.reason = "";
@@ -696,7 +696,7 @@ namespace cryptonote
       if ((res.not_rct = tvc.m_not_rct))
         add_reason(res.reason, "tx is not ringct");
       const std::string punctuation = res.reason.empty() ? "" : ": ";
-      if (tvc.m_verifivation_failed)
+      if (tvc.m_verification_failed)
       {
         LOG_PRINT_L0("[on_send_raw_tx]: tx verification failed" << punctuation << res.reason);
       }
