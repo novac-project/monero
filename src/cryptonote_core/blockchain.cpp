@@ -385,8 +385,7 @@ bool Blockchain::init(BlockchainDB* db, const bool testnet, bool offline, const 
 
   if (!fakechain)
   {
-    // ensure we fixup anything we found and fix in the future
-    m_db->fixup();
+    m_db->set_batch_transactions(true);
   }
 
   m_db->block_txn_start(true);
