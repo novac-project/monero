@@ -999,10 +999,9 @@ namespace cryptonote
     uint64_t best_coinbase = 0, coinbase = 0;
     total_size = 0;
     fee = 0;
-    
+
     //baseline empty block
     get_block_reward(median_size, total_size, already_generated_coins, best_coinbase, version);
-
 
     size_t max_total_size_pre_v5 = (130 * median_size) / 100 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
     size_t max_total_size_v5 = 2 * median_size - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
@@ -1038,13 +1037,16 @@ namespace cryptonote
         // If we're getting lower coinbase tx,
         // stop including more tx
         uint64_t block_reward;
-        if(!get_block_reward(median_size, total_size + meta.blob_size, already_generated_coins, block_reward, version))
+        uint64_t block_fee = fee + meta.fee;
+
+        if (!get_block_reward(median_size, total_size + meta.blob_size, already_generated_coins, block_reward, block_fee, version))
         {
           LOG_PRINT_L2("  would exceed maximum block size");
           sorted_it++;
           continue;
         }
-        coinbase = block_reward + fee + meta.fee;
+
+        coinbase = block_reward + block_fee;
         if (coinbase < template_accept_threshold(best_coinbase))
         {
           LOG_PRINT_L2("  would decrease coinbase to " << print_money(coinbase));
@@ -1200,7 +1202,9 @@ namespace cryptonote
       return true;
     }, true);
     if (!r)
+    {
       return false;
+    }
     if (!remove.empty())
     {
       LockedTXN lock(m_blockchain);

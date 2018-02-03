@@ -29,6 +29,7 @@
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #include "include_base_utils.h"
+
 using namespace epee;
 
 #include "cryptonote_basic_impl.h"
@@ -70,9 +71,13 @@ namespace cryptonote {
   size_t get_min_block_size(uint8_t version)
   {
     if (version < 2)
+    {
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
+    }
     if (version < 5)
+    {
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2;
+    }
     return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5;
   }
   //-----------------------------------------------------------------------------------------------
@@ -86,53 +91,52 @@ namespace cryptonote {
     return CRYPTONOTE_MAX_TX_SIZE;
   }
   //-----------------------------------------------------------------------------------------------
-  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
-    static_assert(DIFFICULTY_TARGET_V2%60==0&&DIFFICULTY_TARGET_V1%60==0,"difficulty targets must be a multiple of 60");
+  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version)
+  {
+    static_assert(DIFFICULTY_TARGET_V2 % 60 == 0 && DIFFICULTY_TARGET_V1 % 60 == 0, "difficulty targets must be a multiple of 60");
     const int target = version < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
     const int target_minutes = target / 60;
-    const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+    const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes - 1);
 
     uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) >> emission_speed_factor;
-    if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
-    {
-      base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
-    }
-
     uint64_t full_reward_zone = get_min_block_size(version);
 
-    //make it soft
-    if (median_size < full_reward_zone) {
+    if (base_reward < FINAL_SUBSIDY_PER_MINUTE * target_minutes)
+    {
+      base_reward = FINAL_SUBSIDY_PER_MINUTE * target_minutes;
+    }
+
+    // make it soft
+    if (median_size < full_reward_zone)
+    {
       median_size = full_reward_zone;
     }
 
-    if (current_block_size <= median_size) {
+    if (current_block_size <= median_size)
+    {
       reward = base_reward;
       return true;
     }
 
-    if(current_block_size > 2 * median_size) {
+    if (current_block_size > 2 * median_size) {
       MERROR("Block cumulative size is too big: " << current_block_size << ", expected less than " << 2 * median_size);
       return false;
     }
 
-    assert(median_size < std::numeric_limits<uint32_t>::max());
-    assert(current_block_size < std::numeric_limits<uint32_t>::max());
+    reward = get_penalized_amount(median_size, current_block_size, base_reward);
+    return true;
+  }
+  //------------------------------------------------------------------------------------
+  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint64_t &fee, uint8_t version)
+  {
+    bool result = get_block_reward(median_size, current_block_size, already_generated_coins, reward, version);
 
-    uint64_t product_hi;
-    // BUGFIX: 32-bit saturation bug (e.g. ARM7), the result was being
-    // treated as 32-bit by default.
-    uint64_t multiplicand = 2 * median_size - current_block_size;
-    multiplicand *= current_block_size;
-    uint64_t product_lo = mul128(base_reward, multiplicand, &product_hi);
+    if (!result)
+    {
+      return false;
+    }
 
-    uint64_t reward_hi;
-    uint64_t reward_lo;
-    div128_32(product_hi, product_lo, static_cast<uint32_t>(median_size), &reward_hi, &reward_lo);
-    div128_32(reward_hi, reward_lo, static_cast<uint32_t>(median_size), &reward_hi, &reward_lo);
-    assert(0 == reward_hi);
-    assert(reward_lo < base_reward);
-
-    reward = reward_lo;
+    fee = get_penalized_amount(median_size, current_block_size, fee);
     return true;
   }
   //------------------------------------------------------------------------------------
@@ -141,7 +145,9 @@ namespace cryptonote {
     const unsigned char* pbuf = reinterpret_cast<const unsigned char*>(&bl);
     uint8_t summ = 0;
     for(size_t i = 0; i!= sizeof(public_address_outer_blob)-1; i++)
+    {
       summ += pbuf[i];
+    }
 
     return summ;
   }
@@ -151,7 +157,9 @@ namespace cryptonote {
     const unsigned char* pbuf = reinterpret_cast<const unsigned char*>(&bl);
     uint8_t summ = 0;
     for(size_t i = 0; i!= sizeof(public_integrated_address_outer_blob)-1; i++)
+    {
       summ += pbuf[i];
+    }
 
     return summ;
   }
@@ -186,10 +194,14 @@ namespace cryptonote {
   bool is_coinbase(const transaction& tx)
   {
     if(tx.vin.size() != 1)
+    {
       return false;
+    }
 
     if(tx.vin[0].type() != typeid(txin_gen))
+    {
       return false;
+    }
 
     return true;
   }
@@ -233,7 +245,7 @@ namespace cryptonote {
         info.has_payment_id = false;
       }
       else {
-        LOG_PRINT_L1("Wrong address prefix: " << prefix << ", expected " << address_prefix 
+        LOG_PRINT_L1("Wrong address prefix: " << prefix << ", expected " << address_prefix
           << " or " << integrated_address_prefix
           << " or " << subaddress_prefix);
         return false;
@@ -270,7 +282,9 @@ namespace cryptonote {
       // Old address format
       std::string buff;
       if(!string_tools::parse_hexstr_to_binbuff(str, buff))
+      {
         return false;
+      }
 
       if(buff.size()!=sizeof(public_address_outer_blob))
       {

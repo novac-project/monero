@@ -97,12 +97,12 @@ static const struct {
 
   // version 3 starts from block 1141317, which is on or around the 24th of September, 2016. Fork time finalised on 2016-03-21.
   { 3, 1141317, 0, 1458558528 },
-  
+
   // version 4 starts from block 1220516, which is on or around the 5th of January, 2017. Fork time finalised on 2016-09-18.
   { 4, 1220516, 0, 1483574400 },
-  
+
   // version 5 starts from block 1288616, which is on or around the 15th of April, 2017. Fork time finalised on 2017-03-14.
-  { 5, 1288616, 0, 1489520158 },  
+  { 5, 1288616, 0, 1489520158 },
 
   // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
   { 6, 1400000, 0, 1503046577 },
@@ -1028,12 +1028,16 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
   //validate reward
   uint64_t money_in_use = 0;
   for (auto& o: b.miner_tx.vout)
+  {
     money_in_use += o.amount;
+  }
   partial_block_reward = false;
 
   if (version == 3) {
-    for (auto &o: b.miner_tx.vout) {
-      if (!is_valid_decomposed_amount(o.amount)) {
+    for (auto &o: b.miner_tx.vout)
+    {
+      if (!is_valid_decomposed_amount(o.amount))
+      {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
         return false;
       }
@@ -1042,12 +1046,13 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   std::vector<size_t> last_blocks_sizes;
   get_last_n_blocks_sizes(last_blocks_sizes, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, version))
+
+  if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, fee, version))
   {
     MERROR_VER("block size " << cumulative_block_size << " is bigger than allowed for this blockchain");
     return false;
   }
-  if(base_reward + fee < money_in_use)
+  if (base_reward + fee < money_in_use)
   {
     MERROR_VER("coinbase transaction spend too much money (" << print_money(money_in_use) << "). Block reward is " << print_money(base_reward + fee) << "(" << print_money(base_reward) << "+" << print_money(fee) << ")");
     return false;
@@ -1068,7 +1073,9 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     // emission. This modifies the emission curve very slightly.
     CHECK_AND_ASSERT_MES(money_in_use - fee <= base_reward, false, "base reward calculation bug");
     if(base_reward + fee != money_in_use)
+    {
       partial_block_reward = true;
+    }
     base_reward = money_in_use - fee;
   }
   return true;
@@ -1083,7 +1090,9 @@ void Blockchain::get_last_n_blocks_sizes(std::vector<size_t>& sz, size_t count) 
 
   // this function is meaningless for an empty blockchain...granted it should never be empty
   if(h == 0)
+  {
     return;
+  }
 
   m_db->block_txn_start(true);
   // add size of last <count> blocks to vector <sz> (or less, if blockchain size < count)
@@ -1273,7 +1282,9 @@ bool Blockchain::complete_timestamps_vector(uint64_t start_top_height, std::vect
   LOG_PRINT_L3("Blockchain::" << __func__);
 
   if(timestamps.size() >= BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW)
+  {
     return true;
+  }
 
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   size_t need_elements = BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW - timestamps.size();
@@ -1443,8 +1454,14 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
 
       bool r = switch_to_alternative_blockchain(alt_chain, true);
 
-      if(r) bvc.m_added_to_main_chain = true;
-      else bvc.m_verifivation_failed = true;
+      if(r)
+      {
+        bvc.m_added_to_main_chain = true;
+      }
+      else
+      {
+        bvc.m_verifivation_failed = true;
+      }
 
       return r;
     }
@@ -1455,9 +1472,13 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
 
       bool r = switch_to_alternative_blockchain(alt_chain, false);
       if (r)
+      {
         bvc.m_added_to_main_chain = true;
+      }
       else
+      {
         bvc.m_verifivation_failed = true;
+      }
       return r;
     }
     else
@@ -1505,7 +1526,9 @@ bool Blockchain::get_blocks(uint64_t start_offset, size_t count, std::list<std::
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   if(start_offset >= m_db->height())
+  {
     return false;
+  }
 
   for(size_t i = start_offset; i < start_offset + count && i < m_db->height();i++)
   {
@@ -1555,7 +1578,7 @@ bool Blockchain::handle_get_objects(NOTIFY_REQUEST_GET_OBJECTS::request& arg, NO
       // as done below if any standalone transactions were requested
       // and missed.
       rsp.missed_ids.splice(rsp.missed_ids.end(), missed_tx_ids);
-	  m_db->block_txn_stop();
+	    m_db->block_txn_stop();
       return false;
     }
 
@@ -1565,14 +1588,18 @@ bool Blockchain::handle_get_objects(NOTIFY_REQUEST_GET_OBJECTS::request& arg, NO
     e.block = bl.first;
     //pack transactions
     for (const cryptonote::blobdata& tx: txs)
+    {
       e.txs.push_back(tx);
+    }
   }
   //get another transactions, if need
   std::list<cryptonote::blobdata> txs;
   get_transactions_blobs(arg.txs, txs, rsp.missed_ids);
   //pack aside transactions
   for (const auto& tx: txs)
+  {
     rsp.txs.push_back(tx);
+  }
 
   m_db->block_txn_stop();
   return true;
@@ -1672,7 +1699,9 @@ std::vector<uint64_t> Blockchain::get_random_outputs(uint64_t amount, uint64_t c
       uint64_t i = (uint64_t)(frac*num_outs);
       // just in case rounding up to 1 occurs after sqrt
       if (i == num_outs)
+      {
         --i;
+      }
 
       if (seen_indices.count(i))
       {
@@ -2930,8 +2959,10 @@ bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
     uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
     uint64_t base_reward;
     if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
+    {
       return false;
-    fee_per_kb = get_dynamic_per_kb_fee(base_reward, median, version);
+    }
+    fee_per_kb = get_penalized_amount(median, 1, get_dynamic_per_kb_fee(base_reward, median, version));
   }
   MDEBUG("Using " << print_money(fee) << "/kB fee");
 
@@ -2970,13 +3001,14 @@ uint64_t Blockchain::get_dynamic_per_kb_fee_estimate(uint64_t grace_blocks) cons
 
   uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
   uint64_t base_reward;
+
   if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
   {
     MERROR("Failed to determine block reward, using placeholder " << print_money(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
     base_reward = BLOCK_REWARD_OVERESTIMATE;
   }
 
-  uint64_t fee = get_dynamic_per_kb_fee(base_reward, median, version);
+  uint64_t fee = get_penalized_amount(median, 1, get_dynamic_per_kb_fee(base_reward, median, version));
   MDEBUG("Estimating " << grace_blocks << "-block fee at " << print_money(fee) << "/kB");
   return fee;
 }
@@ -3456,7 +3488,9 @@ leave:
   // subsidy of 0 under the base formula and therefore the minimum subsidy >0 in the tail state.
   already_generated_coins = base_reward < (MONEY_SUPPLY-already_generated_coins) ? already_generated_coins + base_reward : MONEY_SUPPLY;
   if(m_db->height())
+  {
     cumulative_difficulty += m_db->get_block_cumulative_difficulty(m_db->height() - 1);
+  }
 
   TIME_MEASURE_FINISH(block_processing_time);
   if(precomputed)

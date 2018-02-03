@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2018, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #include <unordered_set>
@@ -81,14 +81,18 @@ namespace cryptonote
     keypair txkey = keypair::generate();
     add_tx_pub_key_to_extra(tx, txkey.pub);
     if(!extra_nonce.empty())
+    {
       if(!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce))
+      {
         return false;
+      }
+    }
 
     txin_gen in;
     in.height = height;
 
     uint64_t block_reward;
-    if(!get_block_reward(median_size, current_block_size, already_generated_coins, block_reward, hard_fork_version))
+    if (!get_block_reward(median_size, current_block_size, already_generated_coins, block_reward, fee, hard_fork_version))
     {
       LOG_PRINT_L0("Block is too big");
       return false;
@@ -125,7 +129,9 @@ namespace cryptonote
         //out_amounts.resize(out_amounts.size() - 1);
         out_amounts[1] += out_amounts[0];
         for (size_t n = 1; n < out_amounts.size(); ++n)
+        {
           out_amounts[n - 1] = out_amounts[n];
+        }
         out_amounts.resize(out_amounts.size() - 1);
       }
     }
@@ -157,9 +163,13 @@ namespace cryptonote
     CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
     if (hard_fork_version >= 4)
+    {
       tx.version = 2;
+    }
     else
+    {
       tx.version = 1;
+    }
 
     //lock
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
@@ -175,15 +185,23 @@ namespace cryptonote
   crypto::public_key get_destination_view_key_pub(const std::vector<tx_destination_entry> &destinations, const account_keys &sender_keys)
   {
     if (destinations.empty())
+    {
       return null_pkey;
+    }
     for (size_t n = 1; n < destinations.size(); ++n)
     {
       if (!memcmp(&destinations[n].addr, &sender_keys.m_account_address, sizeof(destinations[0].addr)))
+      {
         continue;
+      }
       if (destinations[n].amount == 0)
+      {
         continue;
+      }
       if (memcmp(&destinations[n].addr, &destinations[0].addr, sizeof(destinations[0].addr)))
+      {
         return null_pkey;
+      }
     }
     return destinations[0].addr.m_view_public_key;
   }

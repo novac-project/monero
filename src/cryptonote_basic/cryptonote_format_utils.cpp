@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2018, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #include "include_base_utils.h"
@@ -40,6 +40,7 @@ using namespace epee;
 #include "cryptonote_config.h"
 #include "crypto/crypto.h"
 #include "crypto/hash.h"
+#include "common/int-util.h"
 #include "ringct/rctSigs.h"
 
 #undef MONERO_DEFAULT_LOG_CATEGORY
@@ -292,6 +293,28 @@ namespace cryptonote
 
     return string_tools::get_xtype_from_string(amount, str_amount);
   }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t get_penalized_amount(size_t median_size, size_t current_block_size, uint64_t amount)
+  {
+    assert(median_size < std::numeric_limits<uint32_t>::max());
+    assert(current_block_size < std::numeric_limits<uint32_t>::max());
+
+    uint64_t product_hi;
+    // BUGFIX: 32-bit saturation bug (e.g. ARM7), the result was being
+    // treated as 32-bit by default.
+    uint64_t multiplicand = 2 * median_size - current_block_size;
+    multiplicand *= current_block_size;
+    uint64_t product_lo = mul128(amount, multiplicand, &product_hi);
+
+    uint64_t reward_hi;
+    uint64_t reward_lo;
+    div128_32(product_hi, product_lo, static_cast<uint32_t>(median_size), &reward_hi, &reward_lo);
+    div128_32(reward_hi, reward_lo, static_cast<uint32_t>(median_size), &reward_hi, &reward_lo);
+    assert(0 == reward_hi);
+    assert(reward_lo < amount);
+
+    return reward_lo;
+  }
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
@@ -308,7 +331,9 @@ namespace cryptonote
       amount_in += boost::get<txin_to_key>(in).amount;
     }
     for(auto& o: tx.vout)
+    {
       amount_out += o.amount;
+    }
 
     CHECK_AND_ASSERT_MES(amount_in >= amount_out, false, "transaction spend (" <<amount_in << ") more than it has (" << amount_out << ")");
     fee = amount_in - amount_out;
@@ -319,7 +344,9 @@ namespace cryptonote
   {
     uint64_t r = 0;
     if(!get_tx_fee(tx, r))
+    {
       return 0;
+    }
     return r;
   }
   //---------------------------------------------------------------
@@ -328,7 +355,9 @@ namespace cryptonote
     tx_extra_fields.clear();
 
     if(tx_extra.empty())
+    {
       return true;
+    }
 
     std::string extra_str(reinterpret_cast<const char*>(tx_extra.data()), tx_extra.size());
     std::istringstream iss(extra_str);
